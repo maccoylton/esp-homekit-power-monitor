@@ -1,0 +1,5 @@
+esp-homekit-power-monitor.xcodeproj/
+build/
+firmware/
+src/.DS_Store
+.DS_Store
