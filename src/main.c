@@ -73,10 +73,12 @@ homekit_characteristic_t volts = HOMEKIT_CHARACTERISTIC_(CUSTOM_VOLTS, 0);
 homekit_characteristic_t amps = HOMEKIT_CHARACTERISTIC_(CUSTOM_AMPS, 0);
 
 homekit_characteristic_t watts = HOMEKIT_CHARACTERISTIC_(CUSTOM_WATTS, 0);
+homekit_characteristic_t switch_on = HOMEKIT_CHARACTERISTIC_(ON, false);
+
 TaskHandle_t power_monitoring_task_handle;
 
 
-int led_off_value=1; /* global varibale to support LEDs set to 0 where the LED is connected to GND, 1 where +3.3v */
+int led_off_value=-1; /* global varibale to support LEDs set to 0 where the LED is connected to GND, 1 where +3.3v */
 
 const int status_led_gpio = 2; /*set the gloabl variable for the led to be used for showing status */
 
@@ -86,44 +88,39 @@ double RMSCurrent;
 int RMSPower;
 int LineVolts = 230;
 
+void power_monitoring_task(void *_args) {
 
-void ReadPower ()      // Method to read information from the CT
-{
-    static int Current = 0;
+    static float Current = 0;
     static int MaxCurrent = 0;
     static int MinCurrent = 1023;
     static int PeakCurrent = 0;
     
-    // Needs to sample for at least one and half mains cycles or > 30mS
-    for (int j = 0 ; j <= 600 ; j++)
-    {
-        
-        Current =  sdk_system_adc_read() ;   //Reads A/D input and records maximum and minimum current
-        
-        if (Current >= MaxCurrent)
-            MaxCurrent = Current;
-        
-        if (Current <= MinCurrent)
-            MinCurrent = Current;
-        
-    } // End of samples loop
-    
-    PeakCurrent = MaxCurrent - MinCurrent;
-    
-    RMSCurrent = (PeakCurrent * 0.3535) / Calib; //Calculates RMS current based on maximum value and scales according to calibration
-    RMSPower = LineVolts * RMSCurrent;  //Calculates RMS Power Assuming Voltage 240VAC, change to 110VAC accordingly
-}
-
-
-void power_monitoring_task(void *_args) {
-
     printf ("%s:\n", __func__);
 
     while (1)
     {
-        ReadPower();
-        volts.value.int_value = RMSPower;
-        amps.value.float_value = RMSCurrent;
+        // Needs to sample for at least one and half mains cycles or > 30mS
+        for (int j = 0 ; j <= 6 ; j++)
+        {
+            
+            Current =  sdk_system_adc_read() ;   //Reads A/D input and records maximum and minimum current
+            printf ("%s: Current %f\n", __func__, Current);
+            if (Current >= MaxCurrent)notes
+                MaxCurrent = Current;
+            
+            if (Current <= MinCurrent)
+                MinCurrent = Current;
+
+            vTaskDelay(5 / portTICK_PERIOD_MS);
+
+        } // End of samples loop
+        
+        PeakCurrent = MaxCurrent - MinCurrent;
+        
+        amps.value = HOMEKIT_FLOAT ((PeakCurrent * 0.3535) / Calib); //Calculates RMS current based on maximum value and scales according to calibration
+        watts.value = HOMEKIT_UINT16 (LineVolts * RMSCurrent);  //Calculates RMS Power Assuming Voltage 240VAC, change to 110VAC accordingly
+        //volts.value.int_value = LineVolts;
+       
         
         printf("%s: [HLW] Current (A)         :%f\n", __func__, RMSCurrent);
         printf("%s: [HLW] Power (VA) :%d\n", __func__, RMSPower);
@@ -148,7 +145,7 @@ void gpio_init() {
 
 
 homekit_accessory_t *accessories[] = {
-    HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_sprinkler, .services=(homekit_service_t*[]){
+    HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_sensor, .services=(homekit_service_t*[]){
         HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics=(homekit_characteristic_t*[]){
             &name,
             &manufacturer,
@@ -160,8 +157,9 @@ homekit_accessory_t *accessories[] = {
         }),
         
 
-        HOMEKIT_SERVICE(VALVE, .primary=true, .characteristics=(homekit_characteristic_t*[]){
-            HOMEKIT_CHARACTERISTIC(NAME, "Valve 1"),
+        HOMEKIT_SERVICE(SWITCH, .primary=true, .characteristics=(homekit_characteristic_t*[]){
+            HOMEKIT_CHARACTERISTIC(NAME, "Switch"),
+            &switch_on,
             &volts,
             &watts,
             &amps,
