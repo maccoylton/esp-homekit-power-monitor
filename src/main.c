@@ -105,7 +105,7 @@ void power_monitoring_task(void *_args) {
             
             Current =  sdk_system_adc_read() ;   //Reads A/D input and records maximum and minimum current
             printf ("%s: Current %f\n", __func__, Current);
-            if (Current >= MaxCurrent)notes
+            if (Current >= MaxCurrent)
                 MaxCurrent = Current;
             
             if (Current <= MinCurrent)
@@ -117,19 +117,20 @@ void power_monitoring_task(void *_args) {
         
         PeakCurrent = MaxCurrent - MinCurrent;
         
-        amps.value = HOMEKIT_FLOAT ((PeakCurrent * 0.3535) / Calib); //Calculates RMS current based on maximum value and scales according to calibration
+	RMSCurrent = (PeakCurrent * 0.3535) / Calib;
+        amps.value = HOMEKIT_FLOAT (RMSCurrent); //Calculates RMS current based on maximum value and scales according to calibration
         watts.value = HOMEKIT_UINT16 (LineVolts * RMSCurrent);  //Calculates RMS Power Assuming Voltage 240VAC, change to 110VAC accordingly
-        //volts.value.int_value = LineVolts;
+        volts.value.int_value = LineVolts;
        
         
         printf("%s: [HLW] Current (A)         :%f\n", __func__, RMSCurrent);
         printf("%s: [HLW] Power (VA) :%d\n", __func__, RMSPower);
         
-        //homekit_characteristic_bounds_check( &volts);
+        homekit_characteristic_bounds_check( &volts);
         homekit_characteristic_bounds_check( &amps);
         homekit_characteristic_bounds_check( &watts);
         
-        //homekit_characteristic_notify(&volts, volts.value);
+        homekit_characteristic_notify(&volts, volts.value);
         homekit_characteristic_notify(&amps, amps.value);
         homekit_characteristic_notify(&watts, watts.value);
         
