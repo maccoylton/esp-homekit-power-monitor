@@ -90,7 +90,7 @@ int LineVolts = 230;
 
 void power_monitoring_task(void *_args) {
 
-    static float Current = 0;
+    static int Current = 0;
     static int MaxCurrent = 0;
     static int MinCurrent = 1023;
     static int PeakCurrent = 0;
@@ -99,31 +99,39 @@ void power_monitoring_task(void *_args) {
 
     while (1)
     {
+
+	Current = 0;
+	MaxCurrent = 0;
+	MinCurrent = 1023;
+	PeakCurrent = 0;
+
         // Needs to sample for at least one and half mains cycles or > 30mS
-        for (int j = 0 ; j <= 6 ; j++)
+        for (int j = 0 ; j <= 50 ; j++)
         {
             
             Current =  sdk_system_adc_read() ;   //Reads A/D input and records maximum and minimum current
-            printf ("%s: Current %f\n", __func__, Current);
+            //printf (" %d", Current);
             if (Current >= MaxCurrent)
                 MaxCurrent = Current;
             
             if (Current <= MinCurrent)
                 MinCurrent = Current;
 
-            vTaskDelay(5 / portTICK_PERIOD_MS);
+            vTaskDelay(2 / portTICK_PERIOD_MS);
 
         } // End of samples loop
         
         PeakCurrent = MaxCurrent - MinCurrent;
+	printf (" PeakCurrent: %d", PeakCurrent );
         
 	RMSCurrent = (PeakCurrent * 0.3535) / Calib;
+	RMSPower = LineVolts * RMSCurrent;
         amps.value = HOMEKIT_FLOAT (RMSCurrent); //Calculates RMS current based on maximum value and scales according to calibration
-        watts.value = HOMEKIT_UINT16 (LineVolts * RMSCurrent);  //Calculates RMS Power Assuming Voltage 240VAC, change to 110VAC accordingly
+        watts.value = HOMEKIT_UINT16 (RMSPower );  //Calculates RMS Power Assuming Voltage 240VAC, change to 110VAC accordingly
         volts.value.int_value = LineVolts;
        
         
-        printf("%s: [HLW] Current (A)         :%f\n", __func__, RMSCurrent);
+        printf("%s: [HLW] Current (A)         :%f2.2\n", __func__, RMSCurrent);
         printf("%s: [HLW] Power (VA) :%d\n", __func__, RMSPower);
         
         homekit_characteristic_bounds_check( &volts);
