@@ -52,7 +52,7 @@
 #include <ota-api.h>
 
 #define SAVE_DELAY 2000
-#define POWER_MONITOR_POLL_PERIOD 10000
+#define POWER_MONITOR_POLL_PERIOD 3000
 
 
 homekit_characteristic_t wifi_check_interval   = HOMEKIT_CHARACTERISTIC_(CUSTOM_WIFI_CHECK_INTERVAL, 10, .setter=wifi_check_interval_set);
@@ -117,7 +117,7 @@ void power_monitoring_task(void *_args) {
             if (Current <= MinCurrent)
                 MinCurrent = Current;
 
-            vTaskDelay(2 / portTICK_PERIOD_MS);
+            vTaskDelay(1 / portTICK_PERIOD_MS);
 
         } // End of samples loop
         
