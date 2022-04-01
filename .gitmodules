@@ -19,3 +19,6 @@
 [submodule "components/esp-wifi-config"]
 	path = components/esp-wifi-config
 	url = https://github.com/maximkulkin/esp-wifi-config
+[submodule "components/esp-homekit-eve-history"]
+	path = components/esp-homekit-eve-history
+	url = https://github.com/maccoylton/esp-homekit-eve-history
