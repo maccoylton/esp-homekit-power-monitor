@@ -166,7 +166,7 @@ void power_monitoring_task(void *_args) {
             /* we store eve history log ever 10 minutes */
             
 
-            if(eve_history_log_header.entry_counter = EVE_HISTORY_MAX_LOG_ENTRIES) {
+            if(eve_history_log_header.entry_counter == EVE_HISTORY_MAX_LOG_ENTRIES) {
                 /* if we have run out of space, for new log entries start again */
                 eve_history_log_header.entry_counter = 0;
             }
